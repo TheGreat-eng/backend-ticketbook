@@ -8,4 +8,11 @@ import com.example.App.entity.User;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email); // Phải là findByEmail mới khớp với logic loadUser
+
+
+
+
+    Boolean existsByEmail(String email);
+
 }
+

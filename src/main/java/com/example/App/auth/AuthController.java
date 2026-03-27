@@ -2,18 +2,24 @@ package com.example.App.auth;
 
 import com.example.App.auth.dto.AuthResponse;
 import com.example.App.auth.dto.LoginRequest;
+import com.example.App.auth.dto.RegisterRequest;
+import com.example.App.repository.RoleRepository;
 import com.example.App.repository.UserRepository;
 import com.example.App.security.JwtUtils;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Set;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import com.example.App.entity.User;  
-import com.example.App.repository.UserRepository;
 
+import com.example.App.entity.Role;
+import com.example.App.entity.User;  
+import static com.example.App.entity.Role.RoleName;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -25,6 +31,9 @@ public class AuthController {
     // Khai báo thêm 2 cái này để dùng tạm cho việc fix pass
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+
+    private final RoleRepository roleRepository;
 
     // ----- API TẠM THỜI ĐỂ SỬA LỖI MẬT KHẨU -----
     @GetMapping("/fix-pass")
@@ -66,5 +75,31 @@ public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         e.printStackTrace(); 
         return ResponseEntity.status(401).body("Email hoặc mật khẩu không chính xác: " + e.getMessage());
     }
+}
+
+
+
+
+
+@PostMapping("/register")
+public ResponseEntity<?> register(@RequestBody RegisterRequest registerRequest) {
+    // 1. Kiểm tra email tồn tại
+    if (userRepository.existsByEmail(registerRequest.getEmail())) {
+        return ResponseEntity.badRequest().body("Email này đã được sử dụng!");
+    }
+
+    // 2. Tạo User mới và mã hóa mật khẩu
+    User user = new User();
+    user.setEmail(registerRequest.getEmail());
+    user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+
+    // 3. Gán Role mặc định (ROLE_USER)
+    Role userRole = roleRepository.findByName(RoleName.ROLE_USER)
+            .orElseThrow(() -> new RuntimeException("Lỗi: Không tìm thấy Role mặc định."));
+    user.setRoles(Set.of(userRole));
+
+    userRepository.save(user);
+
+    return ResponseEntity.ok("Đăng ký tài khoản thành công!");
 }
 }
