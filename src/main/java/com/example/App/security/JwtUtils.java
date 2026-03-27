@@ -35,6 +35,7 @@ public class JwtUtils {
                 .issuer("ticket-pro")
                 .issueTime(new Date())
                 .expirationTime(new Date(new Date().getTime() + 3600000))
+                // .expirationTime(new Date(new Date().getTime() + 30000))
                 .claim("roles", roles)
                 .build();
 
