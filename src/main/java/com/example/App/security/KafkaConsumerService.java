@@ -22,41 +22,33 @@ public class KafkaConsumerService {
     private final BookingRepository bookingRepository;
     private final SeatRepository seatRepository;
 
-    @KafkaListener(topics = "booking_topic", groupId = "booking_group")
-    @Transactional
-    public void listenBookingEvents(BookingEvent event) {
-        log.info("<<< Nhận được đơn hàng {} từ Kafka. Bắt đầu xử lý ghi DB...", event.getOrderId());
+    @KafkaListener(topics = "booking_topic", groupId = "booking_group_v2")
+@Transactional
+public void listenBookingEvents(BookingEvent event) {
+    // LOG NÀY PHẢI HIỆN RA MÀU TRẮNG TRÊN CONSOLE
+    System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    System.out.println("KAFKA CONSUMER NHẬN ĐƯỢC: " + event.getOrderId());
+    System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-        try {
-            // 1. CHỐNG TRÙNG LẶP (Idempotency): Kiểm tra đơn này đã xử lý chưa
-            if (bookingRepository.existsByOrderId(event.getOrderId())) {
-                log.warn("Đơn hàng {} đã được xử lý trước đó, bỏ qua.", event.getOrderId());
-                return;
-            }
-
-            // 2. Tạo bản ghi Booking chính thức
-            Booking booking = new Booking();
-            booking.setOrderId(event.getOrderId());
-            booking.setUserEmail(event.getUserEmail());
-            booking.setTotalAmount(event.getTotalAmount());
-            booking.setBookingTime(LocalDateTime.now());
-            booking.setStatus(Booking.BookingStatus.PAID); // Giả định thanh toán thành công
-            bookingRepository.save(booking);
-
-            // 3. Cập nhật trạng thái Ghế từ HOLDING -> SOLD
-            List<Seat> seats = seatRepository.findAllById(event.getSeatIds());
-            for (Seat seat : seats) {
-                if (seat.getStatus() == Seat.SeatStatus.HOLDING) {
-                    seat.setStatus(Seat.SeatStatus.SOLD);
-                }
-            }
-            seatRepository.saveAll(seats);
-
-            log.info("√√√ Đơn hàng {} hoàn tất. Ghế đã được bán!", event.getOrderId());
-
-        } catch (Exception e) {
-            log.error("XXX Lỗi khi xử lý đơn hàng Kafka: {}", e.getMessage());
-            // Ở Phase 5 chúng ta sẽ đẩy tin nhắn lỗi này vào Dead Letter Queue (DLQ)
+    try {
+        // Kiểm tra xem Idempotency có chặn nhầm không
+        if (bookingRepository.existsByOrderId(event.getOrderId())) {
+            log.warn("Đơn hàng này đã xử lý rồi: {}", event.getOrderId());
+            return;
         }
+
+        Booking booking = new Booking();
+        booking.setOrderId(event.getOrderId());
+        booking.setUserEmail(event.getUserEmail());
+        booking.setTotalAmount(event.getTotalAmount());
+        booking.setBookingTime(LocalDateTime.now());
+        booking.setStatus(Booking.BookingStatus.PAID);
+        
+        bookingRepository.save(booking);
+        log.info("Ghi DB thành công đơn: {}", event.getOrderId());
+
+    } catch (Exception e) {
+        log.error("LỖI KHI XỬ LÝ CONSUMER: ", e);
     }
+}
 }

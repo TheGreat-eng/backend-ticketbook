@@ -64,6 +64,8 @@ public ResponseEntity<ApiResponse<List<SeatDTO>>> getEventSeats(@PathVariable Lo
     return ResponseEntity.ok(new ApiResponse<>(200, "Thành công", lightSeats));
 }
 
+// FILE: src/main/java/com/example/App/controller/EventController.java
+
 @PostMapping("/hold")
 public ResponseEntity<ApiResponse<String>> holdSeats(
         @RequestBody List<Long> seatIds, 
@@ -74,8 +76,11 @@ public ResponseEntity<ApiResponse<String>> holdSeats(
     }
     
     try {
-        bookingService.holdSeats(seatIds, authentication.getName());
-        return ResponseEntity.ok(new ApiResponse<>(200, "Giữ ghế thành công! Bạn có 10 phút để thanh toán.", null));
+        // SỬA DÒNG NÀY: Gọi processBooking thay vì holdSeats
+        String orderId = bookingService.processBooking(seatIds, authentication.getName());
+        
+        return ResponseEntity.ok(new ApiResponse<>(200, 
+            "Giữ ghế thành công! Mã đơn: " + orderId, null));
     } catch (Exception e) {
         return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     }

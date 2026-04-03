@@ -1,9 +1,11 @@
 package com.example.App.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import com.example.App.entity.Booking;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
+@Repository
 public interface BookingRepository extends JpaRepository<Booking, Long> {
-    Boolean existsByOrderId(String id);
+    // Phải dùng đúng tên thuộc tính orderId
+    boolean existsByOrderId(String orderId);
 }
