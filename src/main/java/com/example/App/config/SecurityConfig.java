@@ -40,6 +40,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
             // Cho phép các yêu cầu OPTIONS (Preflight) đi qua không cần kiểm tra
             .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() 
             .requestMatchers("/api/auth/**").permitAll()
+            .requestMatchers("/api/events/**").permitAll() // Thêm dòng này để test Postman không cần Token
             .anyRequest().authenticated()
         )
         .oauth2ResourceServer(oauth2 -> oauth2
