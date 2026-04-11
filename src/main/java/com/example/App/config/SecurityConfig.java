@@ -41,6 +41,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
             .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() 
             .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/api/events/**").permitAll() // Thêm dòng này để test Postman không cần Token
+            .requestMatchers("/ws/**").permitAll()
             .anyRequest().authenticated()
         )
         .oauth2ResourceServer(oauth2 -> oauth2

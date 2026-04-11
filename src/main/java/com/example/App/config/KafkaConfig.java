@@ -8,21 +8,20 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
-import org.springframework.kafka.support.converter.JsonMessageConverter;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
 
 import java.util.HashMap;
 import java.util.Map;
 
+@EnableKafka // QUAN TRỌNG NHẤT: Bật tính năng Consumer lắng nghe
 @Configuration
 public class KafkaConfig {
 
-    // TỰ ĐỊNH NGHĨA OBJECTMAPPER ĐỂ FIX LỖI "Bean not found"
-    // Và hỗ trợ LocalDateTime (JavaTimeModule)
     @Bean
     public ObjectMapper objectMapper() {
         ObjectMapper mapper = new ObjectMapper();
@@ -31,7 +30,7 @@ public class KafkaConfig {
     }
 
     // ==========================================
-    // 1. PRODUCER (Sử dụng ObjectMapper vừa tạo)
+    // 1. PRODUCER 
     // ==========================================
     @Bean
     public ProducerFactory<String, BookingEvent> producerFactory(ObjectMapper objectMapper) {
@@ -40,7 +39,7 @@ public class KafkaConfig {
         configProps.put(ProducerConfig.LINGER_MS_CONFIG, 5);
 
         JsonSerializer<BookingEvent> valueSerializer = new JsonSerializer<>(objectMapper);
-        valueSerializer.setAddTypeInfo(false); 
+        valueSerializer.setAddTypeInfo(true); // SỬA THÀNH TRUE: Đính kèm thông tin Class để Consumer hiểu
 
         return new DefaultKafkaProducerFactory<>(
             configProps, 
@@ -58,30 +57,31 @@ public class KafkaConfig {
     // 2. CONSUMER 
     // ==========================================
     @Bean
-    public ConsumerFactory<String, String> consumerFactory() {
+    public ConsumerFactory<String, BookingEvent> consumerFactory(ObjectMapper objectMapper) {
         Map<String, Object> props = new HashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "booking_group_v3"); // Đổi Group ID để reset lại từ đầu
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+        // Sử dụng trực tiếp JsonDeserializer thay vì StringDeserializer
+        JsonDeserializer<BookingEvent> jsonDeserializer = new JsonDeserializer<>(BookingEvent.class, objectMapper);
+        jsonDeserializer.addTrustedPackages("*"); // Cấu hình tin tưởng mọi package bằng code
+        jsonDeserializer.setUseTypeMapperForKey(false);
 
         return new DefaultKafkaConsumerFactory<>(
             props, 
             new StringDeserializer(), 
-            new StringDeserializer()
+            jsonDeserializer
         );
     }
 
     @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory(
-            ConsumerFactory<String, String> consumerFactory,
-            ObjectMapper objectMapper) {
+    public ConcurrentKafkaListenerContainerFactory<String, BookingEvent> kafkaListenerContainerFactory(
+            ConsumerFactory<String, BookingEvent> consumerFactory) {
             
-        ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
+        ConcurrentKafkaListenerContainerFactory<String, BookingEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         
-        // Sử dụng ObjectMapper để giải mã JSON có hỗ trợ LocalDateTime
-        factory.setRecordMessageConverter(new JsonMessageConverter(objectMapper));
-        
+        // Không cần JsonMessageConverter nữa vì ConsumerFactory đã trả về thẳng BookingEvent
         return factory;
     }
 }

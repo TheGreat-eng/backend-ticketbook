@@ -1,6 +1,8 @@
 // FILE: src/main/java/com/example/App/entity/Seat.java
 package com.example.App.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -24,6 +26,7 @@ public class Seat {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id")
+    @JsonIgnore
     private Event event; // Hết lỗi đỏ ở đây!
 
     public enum SeatStatus {

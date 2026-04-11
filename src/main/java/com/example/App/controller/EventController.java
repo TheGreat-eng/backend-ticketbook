@@ -1,5 +1,6 @@
 package com.example.App.controller;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.App.dto.ApiResponse;
+import com.example.App.entity.Event;
 import com.example.App.entity.Seat;
 import com.example.App.repository.EventRepository;
 import com.example.App.repository.SeatRepository;
@@ -27,6 +29,36 @@ public class EventController {
     private final EventRepository eventRepository;
     private final SeatRepository seatRepository;
     private final BookingService bookingService;
+
+
+    // Định nghĩa một cái "khuôn" nhẹ hơn ngay trong Controller
+public record EventDTO(
+    Long id, 
+    String title, 
+    String description, 
+    LocalDateTime startTime, 
+    LocalDateTime endTime,
+    String venueName
+) {}
+
+@GetMapping("")
+public ResponseEntity<ApiResponse<List<EventDTO>>> getAllEvents() {
+    List<Event> events = eventRepository.findAll();
+    
+    // Chuyển từ Entity khổng lồ sang DTO siêu nhẹ
+    List<EventDTO> eventDTOs = events.stream()
+        .map(e -> new EventDTO(
+            e.getId(), 
+            e.getTitle(), 
+            e.getDescription(), 
+            e.getStartTime(), 
+            e.getEndTime(),
+            e.getVenue() != null ? e.getVenue().getName() : "N/A"
+        ))
+        .toList();
+
+    return ResponseEntity.ok(new ApiResponse<>(200, "Thành công", eventDTOs));
+}
 
     // @GetMapping("/{id}/seats")
     // public ResponseEntity<ApiResponse<List<Seat>>> getEventSeats(@PathVariable Long id) {
