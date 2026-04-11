@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import com.example.App.dto.BookingEvent;
@@ -24,9 +25,12 @@ public class BookingService {
     private final RedissonClient redissonClient;
     private final KafkaProducerService kafkaProducerService;
 
+    private final StringRedisTemplate stringRedisTemplate; 
+
+
 @Transactional
     public String processBooking(List<Long> seatIds, String userEmail) {
-        // 1. Thực hiện Hold ghế bằng Redis Lock (Phase 3 bạn đã làm cực tốt)
+        // 1. Thực hiện Hold ghế bằng Redis Lock
         this.holdSeats(seatIds, userEmail); 
 
         // 2. Tạo một OrderId tạm thời
@@ -37,14 +41,23 @@ public class BookingService {
             orderId, 
             userEmail, 
             seatIds, 
-            1L, // Tạm thời lấy Event ID = 1
+            1L, 
             seatIds.size() * 500000.0, 
             System.currentTimeMillis()
         );
-        
         kafkaProducerService.sendBookingEvent(event);
 
-        return orderId; // Trả về mã đơn ngay lập tức cho Frontend
+        // ==========================================
+        // 4. THÊM ĐOẠN NÀY: Xóa người dùng khỏi phòng để nhường chỗ cho người xếp hàng
+        // ==========================================
+        try {
+            stringRedisTemplate.opsForSet().remove("allowed_users:event:1", userEmail);
+            log.info("Đã giải phóng slot cho user: {}", userEmail);
+        } catch (Exception e) {
+            log.warn("Lỗi khi xóa user khỏi phòng chờ: {}", e.getMessage());
+        }
+
+        return orderId; 
     }
 
 

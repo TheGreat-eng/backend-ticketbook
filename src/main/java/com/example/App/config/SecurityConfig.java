@@ -40,7 +40,9 @@ public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Excepti
             // Cho phép các yêu cầu OPTIONS (Preflight) đi qua không cần kiểm tra
             .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll() 
             .requestMatchers("/api/auth/**").permitAll()
-            .requestMatchers("/api/events/**").permitAll() // Thêm dòng này để test Postman không cần Token
+            // Thành 2 dòng này (Chỉ cho phép GET danh sách sự kiện mà không cần login, các thao tác khác bắt buộc login):
+.requestMatchers(org.springframework.http.HttpMethod.GET, "/api/events").permitAll()
+.requestMatchers("/api/events/**").authenticated()
             .requestMatchers("/ws/**").permitAll()
             .anyRequest().authenticated()
         )
