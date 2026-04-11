@@ -19,6 +19,7 @@ import com.example.App.entity.Seat;
 import com.example.App.repository.EventRepository;
 import com.example.App.repository.SeatRepository;
 import com.example.App.security.BookingService;
+import com.example.App.service.WaitingRoomService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -29,6 +30,7 @@ public class EventController {
     private final EventRepository eventRepository;
     private final SeatRepository seatRepository;
     private final BookingService bookingService;
+    private final WaitingRoomService waitingRoomService;
 
 
     // Định nghĩa một cái "khuôn" nhẹ hơn ngay trong Controller
@@ -96,7 +98,18 @@ public ResponseEntity<ApiResponse<List<SeatDTO>>> getEventSeats(@PathVariable Lo
     return ResponseEntity.ok(new ApiResponse<>(200, "Thành công", lightSeats));
 }
 
-// FILE: src/main/java/com/example/App/controller/EventController.java
+
+@GetMapping("/{id}/queue-status")
+public ResponseEntity<ApiResponse<Long>> getQueueStatus(Authentication auth) {
+    Long position = waitingRoomService.getQueuePosition(auth.getName());
+    return ResponseEntity.ok(new ApiResponse<>(200, "Vị trí hàng chờ", position));
+}
+
+@PostMapping("/{id}/join-queue")
+public ResponseEntity<ApiResponse<String>> joinQueue(Authentication auth) {
+    waitingRoomService.joinQueue(auth.getName());
+    return ResponseEntity.ok(new ApiResponse<>(200, "Đã gia nhập hàng chờ", null));
+}
 
 @PostMapping("/hold")
 public ResponseEntity<ApiResponse<String>> holdSeats(
@@ -117,6 +130,7 @@ public ResponseEntity<ApiResponse<String>> holdSeats(
         return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
     }
 }
+
 
 
 public record SeatDTO(

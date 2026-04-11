@@ -12,5 +12,5 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     // Phải dùng đúng tên thuộc tính orderId
     boolean existsByOrderId(String orderId);
 
-    List<Booking> findByUserEmail(String email);
+List<Booking> findByUserEmail(String userEmail);
 }
